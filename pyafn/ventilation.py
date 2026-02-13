@@ -29,9 +29,10 @@ def ventilationUpperScaling(Rq):
         Upper bound scaling factor using binomial approximation
     """
     scaling = np.zeros_like(Rq)
-    mask = Rq > 0
-    # Binomial approximation: 1 - Rq^-2 / 2 + Rq^-4 / 8
-    scaling[mask] = 1 - Rq[mask]**-2 / 2 + Rq[mask]**-4 / 8
+    mask = Rq > 1
+    scaling[mask] = np.sqrt(1 - Rq[mask]**-2)
+    # # Binomial approximation: 1 - Rq^-2 / 2 + Rq^-4 / 8
+    # scaling[mask] = 1 - Rq[mask]**-2 / 2 + Rq[mask]**-4 / 8
     return scaling
 
 
