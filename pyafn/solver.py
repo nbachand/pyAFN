@@ -5,7 +5,7 @@ using optimization techniques.
 """
 
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize, OptimizeResult
 from .constants import rho
 from .flow import flowField, getWindBuoyantP, flowFromP
 
@@ -27,8 +27,19 @@ def qObjective(p_0, flowParams):
     qRooms = np.matmul(rooms.T, qs)
     return np.sum(qRooms**2)
 
+def checkTwoOpeningAnalyticalP0(flowParams):
+    if flowParams["rooms"].shape[1] != 1 or flowParams["C_d"].shape[0] != 2:
+        return None  # Not applicable
 
-def findOptimalP0(flowParams):
+    A = flowParams["A"]
+    C_d = flowParams["C_d"]
+    P = getWindBuoyantP(flowParams)
+    C1 = A[0]*C_d[0]
+    C2 = A[1]*C_d[1]
+    return (C1**2 * P[0] + C2**2 * P[1]) / (C1**2 + C2**2)
+
+
+def findOptimalP0(flowParams, checkAnalytical=True):
     """Find optimal indoor pressures that satisfy continuity.
     
     Solves for the indoor pressure(s) that minimize mass flow imbalances
@@ -42,6 +53,14 @@ def findOptimalP0(flowParams):
     Returns:
         Optimization result object from scipy.optimize.minimize
     """
+    if checkAnalytical:
+        analyticalP0 = checkTwoOpeningAnalyticalP0(flowParams)
+        if analyticalP0 is not None:
+            return OptimizeResult(
+                x=np.array([analyticalP0]),
+                success=True,
+                message="Analytical solution found for 2-opening single-room case."
+            )
     bounds = np.array([
         np.min(getWindBuoyantP(flowParams)),
         np.max(getWindBuoyantP(flowParams))
