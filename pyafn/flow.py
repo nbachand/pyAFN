@@ -8,6 +8,53 @@ import numpy as np
 from .constants import g, beta
 
 
+def createFlowParams(C_d, A, p_w, z, delT, q, rooms, hr):
+    """Create a flowParams dictionary with automatic numpy array conversion.
+    
+    This helper function converts list inputs to numpy arrays and organizes them
+    into the proper flowParams structure used by other pyAFN functions.
+    
+    Args:
+        C_d: Discharge coefficients (list or array)
+        A: Opening areas in m² (list or array)
+        p_w: Wind pressure in Pa (list or array)
+        z: Height of opening in m (list or array)
+        delT: Temperature difference(s) in K (list or 2D array for multi-layer)
+        q: Measured flow rates in m³/s (list or array)
+        rooms: Room connectivity matrix (list or 2D array)
+              Rows = openings, Columns = rooms
+              Entry = 1 if opening connects room (inlet), 
+                    = -1 if opening leaves room (outlet),
+                    = 0 if opening doesn't connect to room
+        hr: Reference/room height in m (scalar)
+        
+    Returns:
+        flowParams: Dictionary with numpy array values ready for use
+        
+    Example:
+        >>> flowParams = createFlowParams(
+        ...     C_d=[1, 1, 1],
+        ...     A=[1, 1, 2],
+        ...     p_w=[1, 3, 0],
+        ...     z=[3, 3, 3],
+        ...     delT=[-3, 0, 2],
+        ...     q=[1, 2, -3],
+        ...     rooms=[[1], [1], [1]],
+        ...     hr=3
+        ... )
+    """
+    return {
+        "C_d": np.array(C_d),
+        "A": np.array(A),
+        "p_w": np.array(p_w),
+        "z": np.array(z),
+        "delT": np.array(delT),
+        "q": np.array(q),
+        "rooms": np.array(rooms),
+        "hr": hr
+    }
+
+
 def getWindBuoyantP(rho, flowParams):
     """Calculate wind and buoyancy-driven pressure.
     

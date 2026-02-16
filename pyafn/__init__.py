@@ -22,6 +22,7 @@ from .ventilation import (
 
 # Import flow functions
 from .flow import (
+    createFlowParams,
     getWindBuoyantP,
     flowFromP,
     pFromFlow,
@@ -50,6 +51,7 @@ __all__ = [
     "ventilationReDecomp_q",
     "ventilationReDecomp_p",
     # Flow functions
+    "createFlowParams",
     "getWindBuoyantP",
     "flowFromP",
     "pFromFlow",
