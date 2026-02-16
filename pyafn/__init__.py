@@ -7,7 +7,7 @@ flow calculations, and pressure optimization.
 __version__ = "0.1.0"
 
 # Import constants
-from .constants import g, beta, rho, A
+from .constants import g, beta, rho
 
 # Import ventilation functions
 from .ventilation import (
@@ -41,7 +41,7 @@ from .solver import (
 
 __all__ = [
     # Constants
-    "g", "beta", "rho", "A",
+    "g", "beta", "rho",
     # Ventilation functions
     "ventilationLowerScaling",
     "ventilationUpperScaling",

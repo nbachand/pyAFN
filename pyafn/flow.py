@@ -5,10 +5,10 @@ discharge coefficients in airflow network models.
 """
 
 import numpy as np
-from .constants import g, beta
+from .constants import g, beta, rho
 
 
-def createFlowParams(C_d, A, p_w, z, delT, q, rooms, hr):
+def createFlowParams(C_d=None, A=None, p_w=None, z=None, delT=None, q=None, rooms=None, hr=None):
     """Create a flowParams dictionary with automatic numpy array conversion.
     
     This helper function converts list inputs to numpy arrays and organizes them
@@ -44,22 +44,21 @@ def createFlowParams(C_d, A, p_w, z, delT, q, rooms, hr):
         ... )
     """
     return {
-        "C_d": np.array(C_d),
-        "A": np.array(A),
-        "p_w": np.array(p_w),
-        "z": np.array(z),
-        "delT": np.array(delT),
-        "q": np.array(q),
-        "rooms": np.array(rooms),
-        "hr": hr
+        "C_d": np.array(C_d) if C_d is not None else None,
+        "A": np.array(A) if A is not None else None,
+        "p_w": np.array(p_w) if p_w is not None else None,
+        "z": np.array(z) if z is not None else None,
+        "delT": np.array(delT) if delT is not None else None,
+        "q": np.array(q) if q is not None else None,
+        "rooms": np.array(rooms) if rooms is not None else None,
+        "hr": hr if hr is not None else None
     }
 
 
-def getWindBuoyantP(rho, flowParams):
+def getWindBuoyantP(flowParams):
     """Calculate wind and buoyancy-driven pressure.
     
     Args:
-        rho: Air density (kg/m³)
         flowParams: Dictionary containing:
             - p_w: Wind pressure
             - z: Height
@@ -90,11 +89,10 @@ def getWindBuoyantP(rho, flowParams):
     return (delrho * g * z) + p_w
 
 
-def flowFromP(rho, C_d, A, delp):
+def flowFromP(C_d, A, delp):
     """Calculate flow rate from pressure difference.
     
     Args:
-        rho: Air density (kg/m³)
         C_d: Discharge coefficient
         A: Opening area (m²)
         delp: Pressure difference (Pa)
@@ -107,11 +105,10 @@ def flowFromP(rho, C_d, A, delp):
     return S * C_d * A * np.sqrt(2 * abs(delp) / rho)
 
 
-def pFromFlow(rho, C_d, A, q):
+def pFromFlow(C_d, A, q):
     """Calculate pressure difference from flow rate.
     
     Args:
-        rho: Air density (kg/m³)
         C_d: Discharge coefficient
         A: Opening area (m²)
         q: Flow rate (m³/s)
@@ -124,11 +121,10 @@ def pFromFlow(rho, C_d, A, q):
     return S * (q / (C_d * A))**2 * (rho / 2)
 
 
-def CFromFlow(rho, q, A, delp):
+def CFromFlow(q, A, delp):
     """Calculate discharge coefficient from flow and pressure measurements.
     
     Args:
-        rho: Air density (kg/m³)
         q: Flow rate (m³/s)
         A: Opening area (m²)
         delp: Pressure difference (Pa)
@@ -146,12 +142,11 @@ def CFromFlow(rho, q, A, delp):
     return C
 
 
-def flowField(p_0, rho, flowParams):
+def flowField(p_0, flowParams):
     """Calculate flow field for all openings in the network.
     
     Args:
         p_0: Indoor pressure(s)
-        rho: Air density (kg/m³)
         flowParams: Dictionary containing:
             - C_d: Discharge coefficients
             - A: Opening areas
@@ -164,16 +159,15 @@ def flowField(p_0, rho, flowParams):
     C_d = flowParams["C_d"]
     A = flowParams["A"]
     rooms = flowParams["rooms"]
-    delP = -np.matmul(rooms, p_0) + getWindBuoyantP(rho, flowParams)
-    return flowFromP(rho, C_d, A, delP)
+    delP = -np.matmul(rooms, p_0) + getWindBuoyantP(flowParams)
+    return flowFromP(C_d, A, delP)
 
 
-def getC(p_0, rho, flowParams):
+def getC(p_0, flowParams):
     """Calculate discharge coefficients from measured flows.
     
     Args:
         p_0: Indoor pressure(s)
-        rho: Air density (kg/m³)
         flowParams: Dictionary containing:
             - A: Opening areas
             - q: Measured flow rates
@@ -186,5 +180,5 @@ def getC(p_0, rho, flowParams):
     A = flowParams["A"]
     q = flowParams["q"]
     rooms = flowParams["rooms"]
-    delP = -np.matmul(rooms, p_0) + getWindBuoyantP(rho, flowParams)
-    return CFromFlow(rho, q, A, delP)
+    delP = -np.matmul(rooms, p_0) + getWindBuoyantP(flowParams)
+    return CFromFlow(q, A, delP)

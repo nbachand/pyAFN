@@ -6,36 +6,35 @@ using optimization techniques.
 
 import numpy as np
 from scipy.optimize import minimize
+from .constants import rho
 from .flow import flowField, getWindBuoyantP, flowFromP
 
 
-def qObjective(p_0, rho, flowParams):
+def qObjective(p_0, flowParams):
     """Objective function for airflow network optimization.
     
     Minimizes the sum of squared room flow imbalances (continuity residual).
     
     Args:
         p_0: Indoor pressure(s) to optimize
-        rho: Air density (kg/m³)
         flowParams: Dictionary containing flow parameters
         
     Returns:
         Sum of squared flow residuals
     """
-    qs = flowField(p_0, rho, flowParams)
+    qs = flowField(p_0, flowParams)
     rooms = flowParams["rooms"]
     qRooms = np.matmul(rooms.T, qs)
     return np.sum(qRooms**2)
 
 
-def findOptimalP0(rho, flowParams):
+def findOptimalP0(flowParams):
     """Find optimal indoor pressures that satisfy continuity.
     
     Solves for the indoor pressure(s) that minimize mass flow imbalances
     in all rooms of the airflow network.
     
     Args:
-        rho: Air density (kg/m³)
         flowParams: Dictionary containing:
             - rooms: Room connectivity matrix
             - Other parameters for flow calculations
@@ -44,17 +43,17 @@ def findOptimalP0(rho, flowParams):
         Optimization result object from scipy.optimize.minimize
     """
     bounds = np.array([
-        np.min(getWindBuoyantP(rho, flowParams)),
-        np.max(getWindBuoyantP(rho, flowParams))
+        np.min(getWindBuoyantP(flowParams)),
+        np.max(getWindBuoyantP(flowParams))
     ])
     x0 = np.mean(bounds)
     NRooms = flowParams["rooms"].shape[1]
     bounds = np.tile(bounds, (NRooms, 1))
     x0 = np.tile(x0, NRooms)
-    return minimize(qObjective, x0=x0, bounds=bounds, args=(rho, flowParams))
+    return minimize(qObjective, x0=x0, bounds=bounds, args=(flowParams,))
 
 
-def matchObjective(x, rho, flowParams, weight):
+def matchObjective(x, flowParams, weight):
     """Combined objective function for matching flows and regularizing C_d.
     
     Minimizes:
@@ -63,7 +62,6 @@ def matchObjective(x, rho, flowParams, weight):
     
     Args:
         x: Decision vector [p0_1, ..., p0_N, Cd_1, ..., Cd_M]
-        rho: Air density (kg/m³)
         flowParams: Dictionary containing flow parameters including:
             - rooms: Room connectivity matrix (M × N)
             - A: Opening areas
@@ -84,10 +82,10 @@ def matchObjective(x, rho, flowParams, weight):
     # Compute driving pressures
     params = flowParams.copy()
     params["C_d"] = Cd
-    delP = -np.matmul(rooms, p_0) + getWindBuoyantP(rho, flowParams)
+    delP = -np.matmul(rooms, p_0) + getWindBuoyantP(flowParams)
 
     # 1) Predicted opening flows
-    qs_pred = flowFromP(rho, Cd, params["A"], delP)
+    qs_pred = flowFromP(Cd, params["A"], delP)
 
     # 2) Flow-matching error (per opening)
     q_target = params["q"]
@@ -100,14 +98,13 @@ def matchObjective(x, rho, flowParams, weight):
     return f1 + weight * f2
 
 
-def findOptimalP0AndC(rho, flowParams, weight=1e-1, disp=False):
+def findOptimalP0AndC(flowParams, weight=1e-1, disp=False):
     """Find optimal indoor pressures and discharge coefficients.
     
     Jointly optimizes room pressures (p0) and discharge coefficients (Cd)
     to match target flow measurements while encouraging uniform Cd values.
     
     Args:
-        rho: Air density (kg/m³)
         flowParams: Dictionary containing:
             - rooms: Room connectivity matrix (M × N)
             - A: Opening areas
@@ -125,7 +122,7 @@ def findOptimalP0AndC(rho, flowParams, weight=1e-1, disp=False):
     M = rooms.shape[0]  # Number of openings
 
     # Bounds for p0: between min/max wind-buoyancy pressures
-    WBP = getWindBuoyantP(rho, flowParams)
+    WBP = getWindBuoyantP(flowParams)
     p_bounds = [(np.min(WBP), np.max(WBP))] * N
 
     # Bounds for Cd: reasonable physical range
@@ -141,7 +138,7 @@ def findOptimalP0AndC(rho, flowParams, weight=1e-1, disp=False):
     res = minimize(
         matchObjective,
         x0=x0,
-        args=(rho, flowParams, weight),
+        args=(flowParams, weight),
         bounds=bounds,
         method="L-BFGS-B",
         options={"disp": disp}
