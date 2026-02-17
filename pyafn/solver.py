@@ -59,6 +59,7 @@ def findOptimalP0(flowParams, checkAnalytical=True):
             return OptimizeResult(
                 x=np.array([analyticalP0]),
                 success=True,
+                fun=0.0,
                 message="Analytical solution found for 2-opening single-room case."
             )
     bounds = np.array([
