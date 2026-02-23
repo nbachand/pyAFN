@@ -5,6 +5,7 @@ based on various Richardson numbers and pressure/velocity relationships.
 """
 
 import numpy as np
+from .constants import g, beta, rho
 
 
 def ventilationLowerScaling(Rh):
@@ -54,7 +55,7 @@ def ventilationScalingSwitch(Rh, Rq, Rq_crit):
     return scaling
 
 
-def ventilationBlendedScaling_q(Rq):
+def ventilationBlendedScaling_q(Rq, Rq_crit=np.sqrt(2)):
     """Calculate blended ventilation scaling for velocity-based Richardson number.
     
     Args:
@@ -66,12 +67,11 @@ def ventilationBlendedScaling_q(Rq):
     alpha = 1
     Rh_bound = Rq
     Rh_tangent = alpha * Rh_bound
-    Rq_crit = np.sqrt(2)
     scaling = ventilationScalingSwitch(Rh_tangent, Rq, Rq_crit)
     return scaling
 
 
-def ventilationBlendedScaling_p(Rq):
+def ventilationBlendedScaling_p(Rq, Rq_crit=np.sqrt(3)):
     """Calculate blended ventilation scaling for pressure-based Richardson number.
     
     Args:
@@ -84,12 +84,11 @@ def ventilationBlendedScaling_p(Rq):
     alpha = 16 / (3 * np.sqrt(3))
     Rh_bound = np.sqrt(Rq / 2)
     Rh_tangent = np.sqrt(alpha) * Rh_bound
-    Rq_crit = np.sqrt(3)
     scaling = ventilationScalingSwitch(Rh_tangent, Rq, Rq_crit)
     return scaling
 
 
-def ventilationReDecomp_q(u_model, a, u_rms):
+def ventilationReDecomp_q(u_model, a, u_rms, Rq_crit=np.sqrt(2)):
     """Recompose ventilation velocity with scaling.
     
     Args:
@@ -102,11 +101,11 @@ def ventilationReDecomp_q(u_model, a, u_rms):
     """
     u_model_scaled = u_model * a
     Rq = u_model_scaled / u_rms
-    scaling = ventilationBlendedScaling_q(Rq)
+    scaling = ventilationBlendedScaling_q(Rq, Rq_crit=Rq_crit)
     return u_model_scaled * scaling
 
 
-def ventilationReDecomp_p(u_model, a, p_rms, A_param, rho_param):
+def ventilationReDecomp_p(u_model, a, p_rms, A_param=1, Rq_crit=np.sqrt(3)):
     """Recompose ventilation pressure with scaling.
     
     Args:
@@ -114,13 +113,12 @@ def ventilationReDecomp_p(u_model, a, p_rms, A_param, rho_param):
         a: Scaling factor
         p_rms: RMS pressure
         A_param: Opening area (m²)
-        rho_param: Air density (kg/m³)
         
     Returns:
         Scaled ventilation pressure-equivalent velocity
     """
-    k = A_param * np.sqrt(2 / rho_param)
+    k = A_param * np.sqrt(2 / rho)
     delP = u_model**2 / k  # Not u_model_scaled because we want the original delta P
     Rq = delP / p_rms
-    scaling = ventilationBlendedScaling_p(Rq)
+    scaling = ventilationBlendedScaling_p(Rq, Rq_crit=Rq_crit)
     return a * u_model * scaling
