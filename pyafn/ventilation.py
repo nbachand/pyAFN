@@ -95,7 +95,7 @@ def getRq_p(delP, p_rms):
 
 def uModelToRq_p(u_model, p_rms, A_param=1):
     k = A_param * Cd * np.sqrt(2 / rho)
-    delP = u_model**2 / k
+    delP = (u_model/k)**2
     return getRq_p(delP, p_rms)
 
 def ventilationReDecomp_q(u_model, a, u_rms, Rq_crit=np.sqrt(2)):

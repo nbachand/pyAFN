@@ -18,6 +18,9 @@ from .ventilation import (
     ventilationBlendedScaling_p,
     ventilationReDecomp_q,
     ventilationReDecomp_p,
+    getRq_q,
+    getRq_p,
+    uModelToRq_p,
 )
 
 # Import flow functions
