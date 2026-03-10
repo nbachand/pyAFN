@@ -7,3 +7,4 @@ This module defines the physical constants used throughout the pyAFN package.
 g = 10  # Gravitational acceleration (m/s²)
 beta = 0.0034  # Thermal expansion coefficient (1/K)
 rho = 1.225  # Air density (kg/m³)
+Cd = 0.6  # Discharge coefficient for openings

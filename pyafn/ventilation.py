@@ -5,7 +5,7 @@ based on various Richardson numbers and pressure/velocity relationships.
 """
 
 import numpy as np
-from .constants import g, beta, rho
+from .constants import g, beta, rho, Cd
 
 
 def ventilationLowerScaling(Rh):
@@ -87,6 +87,16 @@ def ventilationBlendedScaling_p(Rq, Rq_crit=np.sqrt(3)):
     scaling = ventilationScalingSwitch(Rh_tangent, Rq, Rq_crit)
     return scaling
 
+def getRq_q(u_model_scaled, u_rms):
+    return np.abs(u_model_scaled) / u_rms
+
+def getRq_p(delP, p_rms):
+    return 2 * np.abs(delP) / p_rms
+
+def uModelToRq_p(u_model, p_rms, A_param=1):
+    k = A_param * Cd * np.sqrt(2 / rho)
+    delP = u_model**2 / k
+    return getRq_p(delP, p_rms)
 
 def ventilationReDecomp_q(u_model, a, u_rms, Rq_crit=np.sqrt(2)):
     """Recompose ventilation velocity with scaling.
@@ -99,10 +109,9 @@ def ventilationReDecomp_q(u_model, a, u_rms, Rq_crit=np.sqrt(2)):
     Returns:
         Scaled ventilation velocity
     """
-    u_model_scaled = u_model * a
-    Rq = u_model_scaled / u_rms
+    Rq = getRq_q(a * u_model, u_rms)
     scaling = ventilationBlendedScaling_q(Rq, Rq_crit=Rq_crit)
-    return u_model_scaled * scaling
+    return a * u_model * scaling
 
 
 def ventilationReDecomp_p(u_model, a, p_rms, A_param=1, Rq_crit=np.sqrt(3)):
@@ -117,8 +126,6 @@ def ventilationReDecomp_p(u_model, a, p_rms, A_param=1, Rq_crit=np.sqrt(3)):
     Returns:
         Scaled ventilation pressure-equivalent velocity
     """
-    k = A_param * np.sqrt(2 / rho)
-    delP = u_model**2 / k  # Not u_model_scaled because we want the original delta P
-    Rq = delP / p_rms
+    Rq = uModelToRq_p(u_model, p_rms, A_param=A_param) # note a is not applied here to get preserve original pressure first
     scaling = ventilationBlendedScaling_p(Rq, Rq_crit=Rq_crit)
     return a * u_model * scaling
