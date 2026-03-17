@@ -1,23 +1,23 @@
 """Ventilation scaling functions for AFN calculations.
 
 This module contains functions for calculating ventilation scaling factors
-based on fluctuation intensity and fluctuation residence relationships.
+based on fluctuation intensity and harmonic intensity relationships.
 """
 
 import numpy as np
 from .constants import g, beta, rho, Cd
 
 
-def ventilationLowerScaling(R):
+def ventilationLowerScaling(H):
     """Calculate fluctuation-dominated ventilation scaling.
     
     Args:
-        R: Fluctuation residence
+        H: Harmonic intensity
         
     Returns:
         Lower bound scaling factor
     """
-    return 0.5 / R
+    return 0.5 / H
 
 
 def ventilationUpperScaling(I):
@@ -35,11 +35,11 @@ def ventilationUpperScaling(I):
     return scaling
 
 
-def ventilationScalingSwitch(R, I, I_crit):
+def ventilationScalingSwitch(H, I, I_crit):
     """Switch between fluctuation- and mean-dominated scaling.
     
     Args:
-        R: Fluctuation residence
+        H: Harmonic intensity
         I: Fluctuation intensity
         I_crit: Critical fluctuation intensity for switching
         
@@ -48,7 +48,7 @@ def ventilationScalingSwitch(R, I, I_crit):
     """
     scaling = np.empty_like(I, dtype=float)
     mask = I >= I_crit
-    scaling[mask] = ventilationLowerScaling(R[mask])
+    scaling[mask] = ventilationLowerScaling(H[mask])
     scaling[~mask] = ventilationUpperScaling(I[~mask])
     return scaling
 
@@ -63,9 +63,9 @@ def ventilationBlendedScaling_q(I, I_crit=1 / np.sqrt(2)):
         Blended scaling factor for velocity-based calculations
     """
     alpha = 1.0
-    R_bound = I
-    R_tangent = alpha * R_bound
-    scaling = ventilationScalingSwitch(R_tangent, I, I_crit)
+    H_bound = I
+    H_tangent = alpha * H_bound
+    scaling = ventilationScalingSwitch(H_tangent, I, I_crit)
     return scaling
 
 
@@ -78,11 +78,11 @@ def ventilationBlendedScaling_p(I, I_crit =1 / np.sqrt(3)):
     Returns:
         Blended scaling factor for pressure-based calculations
     """
-    # Tangential-intersect model written in terms of fluctuation residence.
+    # Tangential-intersect model written in terms of harmonic intensity.
     alpha = 3 * np.sqrt(3) / 16
-    R_bound = np.sqrt(2 * I)
-    R_tangent = R_bound * np.sqrt(alpha)
-    scaling = ventilationScalingSwitch(R_tangent, I, I_crit)
+    H_bound = np.sqrt(2 * I)
+    H_tangent = H_bound * np.sqrt(alpha)
+    scaling = ventilationScalingSwitch(H_tangent, I, I_crit)
     return scaling
 
 def getI_q(u_model_scaled, u_rms):
