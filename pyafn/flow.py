@@ -157,12 +157,12 @@ def checkPiecewiseScaling(q, delP, flowParams):
         raise ValueError("Cannot apply both pRMS and qRMS scaling simultaneously.")
     elif "pRMS" in flowParams:
         pRMS = flowParams["pRMS"].copy()
-        pRMS_signed = np.where(delP > 0, pRMS[0], pRMS[1])
+        pRMS_signed = np.where(delP > 0, pRMS.T[0], pRMS.T[1])
         I = getI_p(delP, pRMS_signed)
         return ventilationBlendedScaling_p(I)
     elif "qRMS" in flowParams:
         qRMS = flowParams["qRMS"].copy()
-        qRMS_signed = np.where(q > 0, qRMS[0], qRMS[1])
+        qRMS_signed = np.where(q > 0, qRMS.T[0], qRMS.T[1])
         I = getI_q(q, qRMS_signed)
         return ventilationBlendedScaling_q(I)
     else:
@@ -188,7 +188,7 @@ def flowField(p_0, flowParams):
     delP = -np.matmul(rooms, p_0) + getWindBuoyantP(flowParams)
     C_d = flowParams["C_d"]
     if len(C_d.shape) == 2:
-        C_d = np.where(delP > 0, C_d[0], C_d[1])
+        C_d = np.where(delP > 0, C_d.T[0], C_d.T[1])
     q = flowFromP(C_d, A, delP)
     scaling = checkPiecewiseScaling(q, delP, flowParams)
     return q * scaling
