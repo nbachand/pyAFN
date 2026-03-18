@@ -6,9 +6,10 @@ discharge coefficients in airflow network models.
 
 import numpy as np
 from .constants import g, beta, rho
+from .ventilation import ventilationBlendedScaling_p, ventilationBlendedScaling_q, getI_p, getI_q
 
 
-def createFlowParams(C_d=None, A=None, p_w=None, z=None, delT=None, q=None, rooms=None, hr=None):
+def createFlowParams(C_d=None, A=None, p_w=None, z=None, delT=None, q=None, rooms=None, hr=None, pRMS=None, qRMS=None):
     """Create a flowParams dictionary with automatic numpy array conversion.
     
     This helper function converts list inputs to numpy arrays and organizes them
@@ -27,6 +28,8 @@ def createFlowParams(C_d=None, A=None, p_w=None, z=None, delT=None, q=None, room
                     = -1 if opening leaves room (outlet),
                     = 0 if opening doesn't connect to room
         hr: Reference/room height in m (scalar)
+        pRMS: RMS pressure in Pa (list or array of [positive RMS, negative RMS])
+        qRMS: RMS flow rate in m³/s (list or array of [positive RMS, negative RMS])
         
     Returns:
         flowParams: Dictionary with numpy array values ready for use
@@ -51,7 +54,9 @@ def createFlowParams(C_d=None, A=None, p_w=None, z=None, delT=None, q=None, room
         "delT": np.array(delT) if delT is not None else None,
         "q": np.array(q) if q is not None else None,
         "rooms": np.array(rooms) if rooms is not None else None,
-        "hr": hr if hr is not None else None
+        "hr": hr if hr is not None else None,
+        "pRMS": np.array(pRMS) if pRMS is not None else None,
+        "qRMS": np.array(qRMS) if qRMS is not None else None,
     }
 
 
@@ -141,6 +146,22 @@ def CFromFlow(q, A, delp):
     C[mask] = q[mask] / (S * A[mask] * np.sqrt(2 * np.abs(delp[mask]) / rho))
     return C
 
+def checkPiecewiseScaling(q, delP, flowParams):
+    if flowParams["pRMS"] is not None and flowParams["qRMS"] is not None:
+        raise ValueError("Cannot apply both pRMS and qRMS scaling simultaneously.")
+    elif flowParams["pRMS"] is not None:
+        pRMS = flowParams["pRMS"].copy()
+        pRMS_signed = np.where(q < 0, pRMS[0], pRMS[1])
+        I = getI_p(delP, pRMS_signed)
+        return ventilationBlendedScaling_p(I)
+    elif flowParams["qRMS"] is not None:
+        qRMS = flowParams["qRMS"].copy()
+        qRMS_signed = np.where(q < 0, qRMS[0], qRMS[1])
+        I = getI_q(q, qRMS_signed)
+        return ventilationBlendedScaling_q(I)
+    else:
+        return np.ones_like(q)
+
 
 def flowField(p_0, flowParams):
     """Calculate flow field for all openings in the network.
@@ -160,7 +181,9 @@ def flowField(p_0, flowParams):
     A = flowParams["A"]
     rooms = flowParams["rooms"]
     delP = -np.matmul(rooms, p_0) + getWindBuoyantP(flowParams)
-    return flowFromP(C_d, A, delP)
+    q = flowFromP(C_d, A, delP)
+    scaling = checkPiecewiseScaling(q, delP, flowParams)
+    return q * scaling
 
 
 def getC(p_0, flowParams):
