@@ -46,7 +46,8 @@ def createFlowParams(C_d=None, A=None, p_w=None, z=None, delT=None, q=None, room
         ...     hr=3
         ... )
     """
-    return {
+
+    flowParams =  {
         "C_d": np.array(C_d) if C_d is not None else None,
         "A": np.array(A) if A is not None else None,
         "p_w": np.array(p_w) if p_w is not None else None,
@@ -55,9 +56,14 @@ def createFlowParams(C_d=None, A=None, p_w=None, z=None, delT=None, q=None, room
         "q": np.array(q) if q is not None else None,
         "rooms": np.array(rooms) if rooms is not None else None,
         "hr": hr if hr is not None else None,
-        "pRMS": np.array(pRMS) if pRMS is not None else None,
-        "qRMS": np.array(qRMS) if qRMS is not None else None,
     }
+
+    if pRMS is not None:
+        flowParams["pRMS"] = np.array(pRMS)
+    if qRMS is not None:
+        flowParams["qRMS"] = np.array(qRMS)
+
+    return flowParams
 
 
 def getWindBuoyantP(flowParams):
@@ -147,14 +153,14 @@ def CFromFlow(q, A, delp):
     return C
 
 def checkPiecewiseScaling(q, delP, flowParams):
-    if flowParams["pRMS"] is not None and flowParams["qRMS"] is not None:
+    if "pRMS" in flowParams and "qRMS" in flowParams:
         raise ValueError("Cannot apply both pRMS and qRMS scaling simultaneously.")
-    elif flowParams["pRMS"] is not None:
+    elif "pRMS" in flowParams:
         pRMS = flowParams["pRMS"].copy()
         pRMS_signed = np.where(q < 0, pRMS[0], pRMS[1])
         I = getI_p(delP, pRMS_signed)
         return ventilationBlendedScaling_p(I)
-    elif flowParams["qRMS"] is not None:
+    elif "qRMS" in flowParams:
         qRMS = flowParams["qRMS"].copy()
         qRMS_signed = np.where(q < 0, qRMS[0], qRMS[1])
         I = getI_q(q, qRMS_signed)
