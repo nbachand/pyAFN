@@ -86,10 +86,22 @@ def ventilationBlendedScaling_p(I, I_crit =1 / np.sqrt(3)):
     return scaling
 
 def getI_q(u_model_scaled, u_rms):
-    return u_rms / np.abs(u_model_scaled)
+    mask = u_model_scaled != 0
+    I = np.zeros_like(u_model_scaled)
+    if np.isscalar(u_rms):
+        I[mask] = u_rms / np.abs(u_model_scaled[mask])
+    else:
+        I[mask] = u_rms[mask] / np.abs(u_model_scaled[mask])
+    return I
 
 def getI_p(delP, p_rms):
-    return p_rms / (2 * np.abs(delP))
+    mask = delP != 0
+    I = np.zeros_like(delP)
+    if np.isscalar(p_rms):
+        I[mask] = p_rms / (2 * np.abs(delP[mask]))
+    else:
+        I[mask] = p_rms[mask] / (2 * np.abs(delP[mask]))
+    return I
 
 def uModelToI_p(u_model, p_rms, A_param=1):
     k = A_param * Cd * np.sqrt(2 / rho)
