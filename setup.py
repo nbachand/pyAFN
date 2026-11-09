@@ -12,7 +12,7 @@ setup(
     description="A Python package for airflow network modeling",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/pyAFN",
+    url="https://github.com/nbachand/pyAFN",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -30,7 +30,6 @@ setup(
     install_requires=[
         "numpy>=1.20.0",
         "scipy>=1.7.0",
-        "tqdm>=4.60.0",
     ],
     extras_require={
         "dev": [

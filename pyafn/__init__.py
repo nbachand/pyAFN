@@ -41,7 +41,7 @@ from .solver import (
 
 __all__ = [
     # Constants
-    "g", "beta", "rho",
+    "g", "beta", "rho", "Cd",
     # Ventilation functions
     "ventilationLowerScaling",
     "ventilationUpperScaling",
