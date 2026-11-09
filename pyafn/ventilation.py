@@ -1,7 +1,20 @@
 """Ventilation scaling functions for AFN calculations.
 
 This module contains functions for calculating ventilation scaling factors
-based on fluctuation intensity and harmonic intensity relationships.
+from the fluctuation intensity I and the fluctuation measure H.
+
+H is a normalized lower-order mean of the fluctuations, used in the
+fluctuation-dominated correction q_bar ~= q_MP / (2H):
+  - Ventilation form (symmetric flow fluctuations):
+        H(q) = mean(|q'|) / |q_MP|            (arithmetic mean of |q'|)
+  - Pressure form (symmetric pressure fluctuations):
+        H(dp) = M_-1(sqrt|dp'|) / sqrt|dp_bar| (harmonic mean of sqrt|dp'|)
+Power-mean monotonicity gives the upper bounds H_U(q) = I(q) (M_1 <= M_2) and
+H_U(dp) = sqrt(2 I(dp)). The blended (piecewise) models replace H by a
+tangent model H_T so that the fluctuation- and mean-dominated branches meet
+tangentially at I*:
+  - H_T(q) = I,                     I* = 1/sqrt(2)
+  - H_T(dp) = sqrt((3 sqrt(3)/8) I), I* = 1/sqrt(3)
 """
 
 import numpy as np
@@ -9,25 +22,26 @@ from .constants import g, beta, rho, Cd
 
 
 def ventilationLowerScaling(H):
-    """Calculate fluctuation-dominated ventilation scaling.
+    """Calculate fluctuation-dominated ventilation scaling, q_bar / q_MP = 1 / (2H).
     
     Args:
-        H: Harmonic intensity
+        H: Normalized fluctuation mean (mean(|q'|)/|q_MP| in the ventilation
+           form; harmonic mean of sqrt|dp'| over sqrt|dp_bar| in the pressure form)
         
     Returns:
-        Lower bound scaling factor
+        Fluctuation-dominated scaling factor
     """
     return 0.5 / H
 
 
 def ventilationUpperScaling(I):
-    """Calculate mean-dominated ventilation scaling.
+    """Calculate mean-dominated ventilation scaling, q_bar / q_MP = sqrt(1 - I^2).
     
     Args:
-        I: Fluctuation intensity
+        I: Fluctuation intensity (array)
         
     Returns:
-        Upper bound scaling factor using binomial approximation
+        Mean-dominated scaling factor (binomial approximation); 0 for I >= 1
     """
     scaling = np.zeros_like(I, dtype=float)
     mask = I < 1
@@ -39,12 +53,12 @@ def ventilationScalingSwitch(H, I, I_crit):
     """Switch between fluctuation- and mean-dominated scaling.
     
     Args:
-        H: Harmonic intensity
+        H: Normalized fluctuation mean used for I >= I_crit
         I: Fluctuation intensity
         I_crit: Critical fluctuation intensity for switching
         
     Returns:
-        Blended scaling factor
+        Blended scaling factor: 1/(2H) for I >= I_crit, sqrt(1 - I^2) otherwise
     """
     scaling = np.empty_like(I, dtype=float)
     mask = I >= I_crit
@@ -54,13 +68,16 @@ def ventilationScalingSwitch(H, I, I_crit):
 
 
 def ventilationBlendedScaling_q(I, I_crit=1 / np.sqrt(2)):
-    """Calculate blended ventilation scaling for velocity-based fluctuation intensity.
+    """Calculate blended ventilation scaling for ventilation-based fluctuation intensity.
+    
+    Uses the tangent model H_T(q) = H_U(q) = I, which meets sqrt(1 - I^2)
+    tangentially at I* = 1/sqrt(2).
     
     Args:
-        I: Fluctuation intensity
+        I: Fluctuation intensity I(q) = sigma_q / |q_MP|
         
     Returns:
-        Blended scaling factor for velocity-based calculations
+        Blended scaling factor for ventilation-based calculations
     """
     alpha = 1.0
     H_bound = I
@@ -72,13 +89,17 @@ def ventilationBlendedScaling_q(I, I_crit=1 / np.sqrt(2)):
 def ventilationBlendedScaling_p(I, I_crit =1 / np.sqrt(3)):
     """Calculate blended ventilation scaling for pressure-based fluctuation intensity.
     
+    Uses the tangent model H_T(dp) = sqrt((3 sqrt(3)/8) I), i.e. the bound
+    H_U(dp) = sqrt(2I) scaled by sqrt(3 sqrt(3)/16), which meets
+    sqrt(1 - I^2) tangentially at I* = 1/sqrt(3).
+    
     Args:
-        I: Fluctuation intensity
+        I: Fluctuation intensity I(dp) = sigma_dp / (2 |dp_bar|)
         
     Returns:
         Blended scaling factor for pressure-based calculations
     """
-    # Tangential-intersect model written in terms of harmonic intensity.
+    # Tangential-intersect model: H_T = sqrt(alpha) * H_U.
     alpha = 3 * np.sqrt(3) / 16
     H_bound = np.sqrt(2 * I)
     H_tangent = H_bound * np.sqrt(alpha)
