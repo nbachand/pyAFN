@@ -127,9 +127,9 @@ q = pyafn.flowField(result.x, fp)   # fluctuation-corrected flows
 `createFlowParams` also accepts `pRMS=` and `qRMS=` keyword arguments.
 
 > **Note:** for a single room with exactly two openings, `findOptimalP0` uses a
-> closed-form solution by default. That solution ignores `pRMS`/`qRMS` and
-> direction-dependent `C_d`. In those cases call
-> `findOptimalP0(flowParams, checkAnalytical=False)`.
+> closed-form solution when it applies, i.e. without `pRMS`/`qRMS` and with one
+> `C_d` per opening. Otherwise it solves numerically. Pass
+> `checkAnalytical=False` to always solve numerically.
 
 ### Applying the correction to a single opening
 

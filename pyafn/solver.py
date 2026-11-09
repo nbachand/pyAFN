@@ -28,8 +28,19 @@ def qObjective(p_0, flowParams):
     return np.sum(qRooms**2)
 
 def checkTwoOpeningAnalyticalP0(flowParams):
-    if flowParams["rooms"].shape[1] != 1 or flowParams["C_d"].shape[0] != 2:
-        return None  # Not applicable
+    """Closed-form p0 for a single room with two openings, or None if not applicable.
+
+    The closed form assumes the plain orifice equation with one C_d per opening,
+    so it is skipped when fluctuation corrections (pRMS/qRMS) or
+    direction-dependent C_d (shape (M, 2)) are used.
+    """
+    rooms = flowParams["rooms"]
+    if rooms.shape[1] != 1 or rooms.shape[0] != 2:
+        return None  # Not a single room with two openings
+    if np.ndim(flowParams["C_d"]) != 1:
+        return None  # Direction-dependent C_d
+    if "pRMS" in flowParams or "qRMS" in flowParams:
+        return None  # Fluctuation corrections change the flow law
 
     A = flowParams["A"]
     C_d = flowParams["C_d"]
